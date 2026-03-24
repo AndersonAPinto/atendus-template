@@ -1,10 +1,10 @@
 -- =============================================================
 -- SCHEMA: Landing Pages Dinâmicas – Atendus
 -- =============================================================
--- Execute este script no seu banco PostgreSQL para criar as
+-- Execute este script no seu banco MySQL para criar as
 -- tabelas necessárias.  Uma view (v_landing_page_full) agrega
 -- tudo em uma única query:
---   SELECT * FROM v_landing_page_full WHERE slug = 'meu-slug' AND active = true;
+--   SELECT * FROM v_landing_page_full WHERE slug = 'meu-slug' AND active = 1;
 -- =============================================================
 
 
@@ -12,9 +12,9 @@
 -- 1. TABELA PRINCIPAL
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS landing_pages (
-    id      SERIAL PRIMARY KEY,
+    id      INT AUTO_INCREMENT PRIMARY KEY,
     slug    VARCHAR(100) UNIQUE NOT NULL,   -- identificador na URL  (?slug=meu-slug)
-    active  BOOLEAN DEFAULT TRUE,
+    active  TINYINT(1) DEFAULT 1,
 
     -- Meta / SEO
     meta_title          TEXT,
@@ -39,27 +39,27 @@ CREATE TABLE IF NOT EXISTS landing_pages (
     hero_image_url          TEXT,           -- URL de imagem opcional no hero
 
     -- ── Como Funciona ─────────────────────────────────────────
-    how_badge           TEXT DEFAULT 'Como Funciona',
+    how_badge           VARCHAR(100) DEFAULT 'Como Funciona',
     how_title           TEXT,               -- ex: "Configure em"
     how_title_gradient  TEXT,               -- ex: "4 Passos Simples"
     how_subtitle        TEXT,
 
     -- ── Recursos ──────────────────────────────────────────────
-    features_badge              TEXT DEFAULT 'Recursos',
+    features_badge              VARCHAR(100) DEFAULT 'Recursos',
     features_title              TEXT,
     features_title_gradient     TEXT,
     features_subtitle           TEXT,
 
     -- ── Sobre ─────────────────────────────────────────────────
-    about_badge             TEXT DEFAULT 'Quem Somos',
+    about_badge             VARCHAR(100) DEFAULT 'Quem Somos',
     about_title             TEXT,
     about_title_gradient    TEXT,
     about_desc_1            TEXT,
     about_desc_2            TEXT,
-    about_diff_title        TEXT DEFAULT 'Nossos Diferenciais',
+    about_diff_title        VARCHAR(100) DEFAULT 'Nossos Diferenciais',
 
     -- ── FAQ ───────────────────────────────────────────────────
-    faq_badge           TEXT DEFAULT 'FAQ',
+    faq_badge           VARCHAR(100) DEFAULT 'FAQ',
     faq_title           TEXT,
     faq_title_gradient  TEXT,
     faq_subtitle        TEXT,
@@ -75,8 +75,8 @@ CREATE TABLE IF NOT EXISTS landing_pages (
     cta_btn_secondary_text  TEXT,
     cta_btn_secondary_url   TEXT,
 
-    created_at  TIMESTAMPTZ DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ DEFAULT NOW()
+    created_at  DATETIME DEFAULT NOW(),
+    updated_at  DATETIME DEFAULT NOW() ON UPDATE NOW()
 );
 
 
@@ -84,12 +84,13 @@ CREATE TABLE IF NOT EXISTS landing_pages (
 -- 2. PASSOS  –  seção "Como Funciona"
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS lp_steps (
-    id          SERIAL PRIMARY KEY,
-    lp_id       INTEGER NOT NULL REFERENCES landing_pages(id) ON DELETE CASCADE,
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    lp_id       INT NOT NULL,
     order_num   SMALLINT NOT NULL DEFAULT 1,
     title       TEXT NOT NULL,
     description TEXT,
-    UNIQUE (lp_id, order_num)
+    UNIQUE KEY uq_steps (lp_id, order_num),
+    CONSTRAINT fk_steps_lp FOREIGN KEY (lp_id) REFERENCES landing_pages(id) ON DELETE CASCADE
 );
 
 
@@ -101,13 +102,14 @@ CREATE TABLE IF NOT EXISTS lp_steps (
 --            heart | target | lock | phone | check
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS lp_features (
-    id          SERIAL PRIMARY KEY,
-    lp_id       INTEGER NOT NULL REFERENCES landing_pages(id) ON DELETE CASCADE,
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    lp_id       INT NOT NULL,
     order_num   SMALLINT NOT NULL DEFAULT 1,
     icon_name   VARCHAR(50) DEFAULT 'star',
     title       TEXT NOT NULL,
     description TEXT,
-    UNIQUE (lp_id, order_num)
+    UNIQUE KEY uq_features (lp_id, order_num),
+    CONSTRAINT fk_features_lp FOREIGN KEY (lp_id) REFERENCES landing_pages(id) ON DELETE CASCADE
 );
 
 
@@ -116,13 +118,14 @@ CREATE TABLE IF NOT EXISTS lp_features (
 --    icon_name: target | heart | bulb  (ou outros do mapa)
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS lp_about_values (
-    id          SERIAL PRIMARY KEY,
-    lp_id       INTEGER NOT NULL REFERENCES landing_pages(id) ON DELETE CASCADE,
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    lp_id       INT NOT NULL,
     order_num   SMALLINT NOT NULL DEFAULT 1,
     icon_name   VARCHAR(50) DEFAULT 'target',
     title       TEXT NOT NULL,
     description TEXT,
-    UNIQUE (lp_id, order_num)
+    UNIQUE KEY uq_about_values (lp_id, order_num),
+    CONSTRAINT fk_about_values_lp FOREIGN KEY (lp_id) REFERENCES landing_pages(id) ON DELETE CASCADE
 );
 
 
@@ -131,12 +134,13 @@ CREATE TABLE IF NOT EXISTS lp_about_values (
 --    icon: emoji ou texto curto  (ex: "⚡", "🔒", "🚀", "🤝")
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS lp_differentials (
-    id          SERIAL PRIMARY KEY,
-    lp_id       INTEGER NOT NULL REFERENCES landing_pages(id) ON DELETE CASCADE,
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    lp_id       INT NOT NULL,
     order_num   SMALLINT NOT NULL DEFAULT 1,
     icon        TEXT NOT NULL,
     label       TEXT NOT NULL,
-    UNIQUE (lp_id, order_num)
+    UNIQUE KEY uq_differentials (lp_id, order_num),
+    CONSTRAINT fk_differentials_lp FOREIGN KEY (lp_id) REFERENCES landing_pages(id) ON DELETE CASCADE
 );
 
 
@@ -144,102 +148,91 @@ CREATE TABLE IF NOT EXISTS lp_differentials (
 -- 7. FAQ
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS lp_faq_items (
-    id          SERIAL PRIMARY KEY,
-    lp_id       INTEGER NOT NULL REFERENCES landing_pages(id) ON DELETE CASCADE,
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    lp_id       INT NOT NULL,
     order_num   SMALLINT NOT NULL DEFAULT 1,
     question    TEXT NOT NULL,
     answer      TEXT NOT NULL,
-    UNIQUE (lp_id, order_num)
+    UNIQUE KEY uq_faq (lp_id, order_num),
+    CONSTRAINT fk_faq_lp FOREIGN KEY (lp_id) REFERENCES landing_pages(id) ON DELETE CASCADE
 );
 
 
 -- -------------------------------------------------------------
--- 8. TRIGGER  –  atualiza updated_at automaticamente
--- -------------------------------------------------------------
-CREATE OR REPLACE FUNCTION lp_set_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trg_lp_updated_at ON landing_pages;
-CREATE TRIGGER trg_lp_updated_at
-    BEFORE UPDATE ON landing_pages
-    FOR EACH ROW EXECUTE FUNCTION lp_set_updated_at();
-
-
--- -------------------------------------------------------------
--- 9. VIEW AGREGADA  –  retorna tudo em uma única query
+-- 8. VIEW AGREGADA  –  retorna tudo em uma única query
 --    Uso: SELECT * FROM v_landing_page_full
---         WHERE slug = 'meu-slug' AND active = true;
+--         WHERE slug = 'meu-slug' AND active = 1;
 -- -------------------------------------------------------------
 CREATE OR REPLACE VIEW v_landing_page_full AS
 SELECT
     lp.*,
 
-    COALESCE((
-        SELECT json_agg(
-            json_build_object(
+    COALESCE(
+        (SELECT JSON_ARRAYAGG(j) FROM (
+            SELECT JSON_OBJECT(
                 'id', s.id,
                 'order_num', s.order_num,
                 'title', s.title,
                 'description', s.description
-            ) ORDER BY s.order_num
-        )
-        FROM lp_steps s WHERE s.lp_id = lp.id
-    ), '[]') AS steps,
+            ) AS j
+            FROM lp_steps s WHERE s.lp_id = lp.id ORDER BY s.order_num
+        ) AS _steps),
+        JSON_ARRAY()
+    ) AS steps,
 
-    COALESCE((
-        SELECT json_agg(
-            json_build_object(
+    COALESCE(
+        (SELECT JSON_ARRAYAGG(j) FROM (
+            SELECT JSON_OBJECT(
                 'id', f.id,
                 'order_num', f.order_num,
                 'icon_name', f.icon_name,
                 'title', f.title,
                 'description', f.description
-            ) ORDER BY f.order_num
-        )
-        FROM lp_features f WHERE f.lp_id = lp.id
-    ), '[]') AS features_items,
+            ) AS j
+            FROM lp_features f WHERE f.lp_id = lp.id ORDER BY f.order_num
+        ) AS _features),
+        JSON_ARRAY()
+    ) AS features_items,
 
-    COALESCE((
-        SELECT json_agg(
-            json_build_object(
+    COALESCE(
+        (SELECT JSON_ARRAYAGG(j) FROM (
+            SELECT JSON_OBJECT(
                 'id', av.id,
                 'order_num', av.order_num,
                 'icon_name', av.icon_name,
                 'title', av.title,
                 'description', av.description
-            ) ORDER BY av.order_num
-        )
-        FROM lp_about_values av WHERE av.lp_id = lp.id
-    ), '[]') AS about_values,
+            ) AS j
+            FROM lp_about_values av WHERE av.lp_id = lp.id ORDER BY av.order_num
+        ) AS _about_values),
+        JSON_ARRAY()
+    ) AS about_values,
 
-    COALESCE((
-        SELECT json_agg(
-            json_build_object(
+    COALESCE(
+        (SELECT JSON_ARRAYAGG(j) FROM (
+            SELECT JSON_OBJECT(
                 'id', d.id,
                 'order_num', d.order_num,
                 'icon', d.icon,
                 'label', d.label
-            ) ORDER BY d.order_num
-        )
-        FROM lp_differentials d WHERE d.lp_id = lp.id
-    ), '[]') AS differentials,
+            ) AS j
+            FROM lp_differentials d WHERE d.lp_id = lp.id ORDER BY d.order_num
+        ) AS _differentials),
+        JSON_ARRAY()
+    ) AS differentials,
 
-    COALESCE((
-        SELECT json_agg(
-            json_build_object(
+    COALESCE(
+        (SELECT JSON_ARRAYAGG(j) FROM (
+            SELECT JSON_OBJECT(
                 'id', fq.id,
                 'order_num', fq.order_num,
                 'question', fq.question,
                 'answer', fq.answer
-            ) ORDER BY fq.order_num
-        )
-        FROM lp_faq_items fq WHERE fq.lp_id = lp.id
-    ), '[]') AS faq_items
+            ) AS j
+            FROM lp_faq_items fq WHERE fq.lp_id = lp.id ORDER BY fq.order_num
+        ) AS _faq),
+        JSON_ARRAY()
+    ) AS faq_items
 
 FROM landing_pages lp;
 
@@ -259,9 +252,6 @@ INSERT INTO landing_pages (
     hero_stat_3_value, hero_stat_3_label,
     how_title, how_title_gradient, how_subtitle,
     features_title, features_title_gradient, features_subtitle,
-    pricing_title, pricing_title_gradient, pricing_subtitle,
-    pricing_custom_cta_title, pricing_custom_cta_desc,
-    pricing_custom_cta_btn_text, pricing_custom_cta_btn_url,
     about_title, about_title_gradient,
     about_desc_1, about_desc_2,
     faq_title, faq_title_gradient, faq_subtitle,
@@ -284,11 +274,6 @@ INSERT INTO landing_pages (
     'Não precisa de conhecimento técnico. Em poucos minutos seu atendimento estará automatizado.',
     'Tudo que você precisa para', 'escalar seu atendimento',
     'Recursos poderosos projetados para transformar a experiência do seu cliente.',
-    'Planos que', 'cabem no seu bolso',
-    'Comece imediatamente e escale conforme sua necessidade. Cancele quando quiser.',
-    'Precisa de um plano maior ou personalizado?',
-    'Entre em contato com um especialista e descubra como criamos uma solução sob medida.',
-    'Falar com Especialista', 'https://wa.me/5551936181848',
     'Democratizando o', 'atendimento inteligente',
     'A Atendus nasceu com uma missão clara: tornar a tecnologia de IA acessível para todos os negócios.',
     'Acreditamos que todo negócio merece oferecer atendimento de excelência 24 horas por dia.',

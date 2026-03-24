@@ -19,7 +19,7 @@ window.LP_CONFIG = {
      * URL base da sua API backend (sem barra final).
      * Ex: 'https://api.seusite.com.br'  ou  'http://localhost:3000'
      */
-    apiBase: 'http://localhost:3000',
+    apiBase: 'http://localhost:8181',
 
     /**
      * Slug padrão quando não há ?slug= na URL.
